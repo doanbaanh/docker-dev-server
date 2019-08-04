@@ -22,7 +22,6 @@ help:
 	@echo '  make up      - Запуск веб сервера'
 	@echo '  make down    - Остановка сервера'
 	@echo '  make restart - Перезапуск сервера'
-	@echo '  make update  - Обновление сервера из репозитории'
 	@echo '  make restart-nginx - Перезагрузка NGINX'
 	@echo ''
 

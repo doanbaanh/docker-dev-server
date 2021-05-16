@@ -14,6 +14,7 @@ ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/do
 RUN chmod +x /usr/local/bin/install-php-extensions \
 	&& sync \
 	&& install-php-extensions \
+		@composer \
 		apcu \
 		bcmath \
 		exif \
@@ -25,11 +26,6 @@ RUN chmod +x /usr/local/bin/install-php-extensions \
 		pdo_pgsql \
 		redis \
 		zip
-
-RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
-	&& php composer-setup.php \
-	&& php -r "unlink('composer-setup.php');" \
-	&& mv composer.phar /usr/local/bin/composer
 
 COPY php.ini /usr/local/etc/php/php.ini
 COPY www.conf /usr/local/etc/php-fpm.d/www.conf

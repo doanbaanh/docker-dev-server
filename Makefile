@@ -35,17 +35,19 @@ reload: ## Reload NGINX configuration and worker
 	@docker-compose restart php-worker
 
 sh:  ## Attach to container
-ifneq (,${ARGS})
-	@docker exec -ti ${ARGS} sh
-else
-	@echo 'run: make sh <container_name>'
-endif
+	@echo 'Container names:'
+	@docker ps | awk '(NR>1) { print "– " $$NF }'
+	@echo ''
+	@read -r -p "Enter container name: " CONTAINER; \
+	docker exec -ti $$CONTAINER sh;
 
 clean: ## Clean logs
 	@rm -rf ./logs/*
 
 backup: ## Dump databases
 	@docker exec -t postgres pg_dumpall -c -U postgres > ./backups/postgres.sql
+	@docker exec -t mysql /usr/bin/mysqldump -u root --password=mysql --all-databases > ./backups/mysql.sql
 
 restore: ## Restore databases from dump
 	@cat ./backups/postgres.sql | docker exec -i postgres psql -U postgres
+	@cat ./backups/mysql.sql | docker exec -i mysql /usr/bin/mysql -u root --password=root

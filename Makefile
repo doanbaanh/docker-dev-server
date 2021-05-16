@@ -1,88 +1,51 @@
-#!/usr/bin/make
-SHELL = /bin/sh
-
-# import env
-include .env
-export $(shell sed 's/=.*//' .env)
-
-# default make action
+# Makefile for web platform
 .DEFAULT_GOAL := help
 
-# variables
-T_START=\033[0;32m
-T_END=\033[0m
+# arguments
+ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+$(eval $(ARGS):;@:)
 
-# commands
-help:
-	@echo "${T_START}CLI:${T_END}"
-	@echo '  make php-sh  - PHP SH'
-	@echo ''
-	@echo "${T_START}Web Server:${T_END}"
-	@echo '  make build   - Сборка сервисов'
-	@echo '  make up      - Запуск веб сервера'
-	@echo '  make down    - Остановка сервера'
-	@echo '  make restart - Перезапуск сервера'
-	@echo '  make restart-nginx - Перезагрузка NGINX'
-	@echo ''
-
-build:
-ifeq ($(APP_ENV), production)
-	docker-compose -f docker-compose.prod.yml pull
-	docker-compose -f docker-compose.prod.yml build
-else ifeq ($(APP_ENV), development)
-	docker-compose -f docker-compose.dev.yml pull
-	docker-compose -f docker-compose.dev.yml build
-else
-	docker-compose pull
-	docker-compose build
+# include docker-compose.extends.yml
+ifneq ("$(wildcard ./docker-compose.extends.yml)","")
+	DOCKER_COMPOSE_EXTENDS = -f docker-compose.extends.yml
 endif
 
-# CLI
-php-sh:
-ifeq ($(APP_ENV), production)
-	docker-compose -f docker-compose.prod.yml exec php sh
-else ifeq ($(APP_ENV), development)
-	docker-compose -f docker-compose.dev.yml exec php sh
+
+
+help: ## Show this help
+	@printf "\033[33m%s:\033[0m\n" 'Available commands'
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[32m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+
+build: ## Build platform
+	@docker-compose -f docker-compose.yml $(DOCKER_COMPOSE_EXTENDS) pull
+	@docker-compose -f docker-compose.yml $(DOCKER_COMPOSE_EXTENDS) build
+
+up: ## Start platform
+	@docker-compose -f docker-compose.yml $(DOCKER_COMPOSE_EXTENDS) up -d
+
+down: ## Stop platform
+	@docker-compose -f docker-compose.yml $(DOCKER_COMPOSE_EXTENDS) down
+
+restart: ## Restart platform
+	@make down
+	@make up
+
+reload: ## Reload NGINX configuration and worker
+	@docker-compose exec web nginx -s reload
+	@docker-compose restart worker
+
+sh:  ## Attach to container
+ifneq (,${ARGS})
+	@docker exec -ti ${ARGS} sh
 else
-	docker-compose exec php sh
+	@echo 'run: make sh <container_name>'
 endif
 
-# SERVER
-up:
-ifeq ($(APP_ENV), production)
-	docker-compose -f docker-compose.prod.yml up -d
-else ifeq ($(APP_ENV), development)
-	docker-compose -f docker-compose.dev.yml up -d
-else
-	docker-compose up -d
-endif
+clean: ## Clean logs
+	@rm -rf ./logs/*
 
-down:
-ifeq ($(APP_ENV), production)
-	docker-compose -f docker-compose.prod.yml down
-else ifeq ($(APP_ENV), development)
-	docker-compose -f docker-compose.dev.yml down
-else
-	docker-compose down
-endif
+backup: ## Dump databases
+	@docker exec -t postgres pg_dumpall -c -U postgres > ./backups/postgres.sql
 
-restart:
-ifeq ($(APP_ENV), production)
-	docker-compose -f docker-compose.prod.yml down
-	docker-compose -f docker-compose.prod.yml up -d
-else ifeq ($(APP_ENV), development)
-	docker-compose -f docker-compose.dev.yml down
-	docker-compose -f docker-compose.dev.yml up -d
-else
-	docker-compose down
-	docker-compose up -d
-endif
-
-restart-nginx:
-ifeq ($(APP_ENV), production)
-	docker-compose -f docker-compose.prod.yml restart nginx
-else ifeq ($(APP_ENV), development)
-	docker-compose -f docker-compose.dev.yml restart nginx
-else
-	docker-compose restart nginx
-endif
+restore: ## Restore databases from dump
+	@cat ./backups/postgres.sql | docker exec -i postgres psql -U postgres

@@ -1,79 +1,76 @@
-version: '3.2'
+version: '2.4'
 
 services:
 
-    nginx:
-        build: ./docker/nginx/
-        container_name: nginx
-        volumes:
-            - ./src:/var/www
-        ports:
-            - 80-89:80-89
-        command: ["nginx", "-c", "nginx.local.conf", "-g", "daemon off;"]
+  web:
+    image: nginx:1.20-alpine
+    container_name: web
+    restart: always
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:cached
+      - ./docker/supervisord/supervisord.conf:/etc/supervisord.conf:cached
+      - ./services:/var/www:cached
+      - ./logs:/logs:cached
+    ports:
+      - 80:80
+      - 443:443
+    working_dir: /var/www
 
-    php:
-        build: ./docker/php/
-        container_name: php
-        volumes:
-            - ./src:/var/www
+  php:
+    build: ./docker/php/7.4/
+    container_name: php
+    restart: always
+    logging:
+      driver: none
+    volumes_from:
+      - web
+    working_dir: /var/www
 
-    worker:
-        build: ./docker/php/
-        container_name: worker
-        volumes:
-            - ./src:/var/www
-            - ./docker/php/crontabs:/etc/crontabs
-        entrypoint:
-            - /usr/bin/supervisord
-            - -n
-            - -c
-            - /etc/crontabs/supervisord.conf
+  php-worker:
+    build: ./docker/php/7.4/
+    container_name: php-worker
+    restart: always
+    logging:
+      driver: none
+    volumes_from:
+      - web
+    working_dir: /var/www
+    entrypoint: ["/usr/bin/supervisord", "-n"]
 
-    postgres:
-        image: postgres:10-alpine
-        container_name: postgres
-        volumes:
-            - postgres-data:/var/lib/postgresql/data
-        environment:
-            POSTGRES_PASSWORD: postgres
+  postgres:
+    image: postgres:13-alpine
+    container_name: postgres
+    restart: always
+    logging:
+      driver: none
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: postgres
 
-    mysql:
-        image: mariadb:10.3
-        container_name: mysql
-        volumes:
-            - mysql-data:/var/lib/mysql
-        environment:
-            MYSQL_ROOT_PASSWORD: mysql
-        command: mysqld --sql_mode=""
+  mysql:
+    image: mariadb:10.5
+    container_name: mysql
+    restart: always
+    logging:
+      driver: none
+    volumes:
+      - mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+    command: mysqld --sql_mode=''
 
-    adminer:
-        image: adminer
-        container_name: adminer
-        ports:
-            - 8080:8080
-
-    rabbitmq:
-        image: rabbitmq:3-management-alpine
-        container_name: rabbitmq
-        ports:
-            - 15672:15672
-            - 5672:5672
-        environment:
-            - RABBITMQ_DEFAULT_USER=rabbitmq
-            - RABBITMQ_DEFAULT_PASS=rabbitmq
-
-    redis:
-        image: redis:5-alpine
-        container_name: redis
-
-    redis-commander:
-        image: rediscommander/redis-commander
-        container_name: redis-commander
-        environment:
-            - REDIS_HOSTS=local:redis:6379
-        ports:
-            - 8081:8081
+  redis:
+    image: redis:5-alpine
+    container_name: redis
+    restart: always
+    logging:
+      driver: none
+    volumes:
+      - redis-data:/data
 
 volumes:
-    postgres-data:
-    mysql-data:
+  postgres-data:
+  mysql-data:
+  redis-data:
+    

@@ -32,7 +32,7 @@ restart: ## Restart platform
 
 reload: ## Reload NGINX configuration and worker
 	@docker-compose exec web nginx -s reload
-	@docker-compose restart worker
+	@docker-compose restart php-worker
 
 sh:  ## Attach to container
 ifneq (,${ARGS})

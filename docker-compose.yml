@@ -7,8 +7,10 @@ services:
     container_name: web
     restart: always
     volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:cached
-      - ./docker/supervisord/supervisord.conf:/etc/supervisord.conf:cached
+      - ./certificates/letsencrypt:/etc/letsencrypt:cached
+      - ./certificates/lib:/var/lib/letsencrypt:cached
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/supervisord.conf:/etc/supervisord.conf:ro
       - ./services:/var/www:cached
       - ./logs:/logs:cached
     ports:
@@ -16,8 +18,16 @@ services:
       - 443:443
     working_dir: /var/www
 
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes_from:
+      - web
+    command: certonly --webroot --webroot-path=/var/www --email doanbaanh@gmail.com --agree-tos --no-eff-email --staging -d sify.ru -d www.sify.ru
+
   php:
-    build: ./docker/php/7.4/
+    image: doanbaanh/php-fpm
+    # build: ./docker/php/7.4-xdebug
     container_name: php
     restart: always
     logging:
@@ -25,9 +35,10 @@ services:
     volumes_from:
       - web
     working_dir: /var/www
+    user: "${UID}:${GID}"
 
   php-worker:
-    build: ./docker/php/7.4/
+    image: doanbaanh/php-fpm
     container_name: php-worker
     restart: always
     logging:
@@ -36,6 +47,7 @@ services:
       - web
     working_dir: /var/www
     entrypoint: ["/usr/bin/supervisord", "-n"]
+    user: "${UID}:${GID}"
 
   postgres:
     image: postgres:13-alpine
@@ -46,7 +58,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: secret
 
   mysql:
     image: mariadb:10.5
@@ -57,7 +69,7 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: mysql
+      MYSQL_ROOT_PASSWORD: secret
     command: mysqld --sql_mode=''
 
   redis:
@@ -73,4 +85,3 @@ volumes:
   postgres-data:
   mysql-data:
   redis-data:
-    

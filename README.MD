@@ -2,41 +2,47 @@
 ```
 git clone https://github.com/doanbaanh/web.git
 cd web
+make init
 make build
 make up
 ```
 
 # Projects
 ```
-/services/project1/...
-/services/project2/...
+/workspace/project1/...
+/workspace/project2/...
 ```
 
 # Available 'make' commands
 ```
-help                 Show this help
-
-build                Build platform
-up                   Start platform
-down                 Stop platform
-restart              Restart platform
-reload               Reload NGINX configuration
-
-sh <container_name>  Attach to container
-clean                Clean logs
-
-backup               Dump databases
-restore              Restore databases from dump
+Available commands:
+  help               Show this help
+  init               Init project environment
+  build              Build platform
+  up                 Run platform
+  down               Stop platform
+  restart            Restart platform
+  reload             Reload NGINX configuration and worker
+  sh                 Attach to container
+  clean              Clean logs
+  node-up            Run nodejs container
+  node-down          Stop nodejs container
+  cypress-up         Run cypress container
+  cypress-down       Stop cypress container
+  ftp-up             Run FTP server
+  ftp-down           Stop FTP server
+  backup             Dump databases
+  restore            Restore databases from dump
 ```
 
 # Projects config
 
-### /services/<project_name>/nginx.conf
+### /workspace/<project_name>/nginx.conf
 ```
 server {
     listen 80;
     server_name example.localhost;
-    root /var/www/<project_name>/api/public;
+    root /var/www/<project_name>/public;
 
     index index.php;
 
@@ -48,7 +54,7 @@ server {
 
     location ~ \.php$ {
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass php:9000;
+        fastcgi_pass php-fpm;
         fastcgi_index index.php;
         fastcgi_read_timeout 1000;
         fastcgi_param SCRIPT_FILENAME $document_root/$fastcgi_script_name;
@@ -62,7 +68,7 @@ server {
 }
 ```
 
-### /services/<project_name>/supervisord.conf
+### /workspace/<project_name>/supervisord.conf
 ```
 [program:<project_name>-scheduler]
 process_name=%(program_name)s_%(process_num)02d
@@ -83,17 +89,22 @@ killasgroup=true
 numprocs=1
 redirect_stderr=true
 ```
-
-# Extend docker-compose (ex. for node)
-
-### /docker-compose.extends.yml:
+### /workspace/<project_name>/docker-compose.yml
 ```
 version: '2.4'
 
 services:
 
-  frontend-nodejs:
-    extends:
-      file: ./services/<project_name>/docker-compose.yml
-      service: frontend-nodejs
+  example-front:
+    image: node:12-alpine
+    container_name: example-front
+    restart: always
+    logging:
+      driver: none
+    volumes_from:
+      - web
+    working_dir: /var/www/example-front
+    links:
+      - web:front.example.localhost
+
 ```

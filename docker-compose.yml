@@ -3,31 +3,22 @@ version: '2.4'
 services:
 
   web:
-    image: nginx:1.20-alpine
+    image: nginx:${NGINX_VERSION}-alpine
     container_name: web
     restart: always
     volumes:
-      - ./certificates/letsencrypt:/etc/letsencrypt:cached
-      - ./certificates/lib:/var/lib/letsencrypt:cached
-      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/supervisord.conf:/etc/supervisord.conf:ro
-      - ./services:/var/www:cached
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certbot/etc/:/etc/letsencrypt:cached
+      - ./certbot/lib:/var/lib/letsencrypt:cached
+      - ./workspace:/var/www:cached
       - ./logs:/logs:cached
     ports:
       - 80:80
       - 443:443
-    working_dir: /var/www
-
-  certbot:
-    image: certbot/certbot
-    container_name: certbot
-    volumes_from:
-      - web
-    command: certonly --webroot --webroot-path=/var/www --email doanbaanh@gmail.com --agree-tos --no-eff-email --staging -d sify.ru -d www.sify.ru
 
   php:
+    # build: ./php-fpm
     image: doanbaanh/php-fpm
-    # build: ./docker/php/7.4-xdebug
     container_name: php
     restart: always
     logging:
@@ -45,12 +36,13 @@ services:
       driver: none
     volumes_from:
       - web
-    working_dir: /var/www
+    volumes:
+      - ./php-worker/supervisord.conf:/etc/supervisord.conf:ro
     entrypoint: ["/usr/bin/supervisord", "-n"]
     user: "${UID}:${GID}"
 
   postgres:
-    image: postgres:13-alpine
+    image: postgres:${POSTGRES_VERSION}-alpine
     container_name: postgres
     restart: always
     logging:
@@ -61,7 +53,7 @@ services:
       POSTGRES_PASSWORD: secret
 
   mysql:
-    image: mariadb:10.5
+    image: mariadb:${MARIADB_VERSION}
     container_name: mysql
     restart: always
     logging:
@@ -73,7 +65,7 @@ services:
     command: mysqld --sql_mode=''
 
   redis:
-    image: redis:5-alpine
+    image: redis:${REDIS_VERSION}-alpine
     container_name: redis
     restart: always
     logging:
@@ -85,3 +77,8 @@ volumes:
   postgres-data:
   mysql-data:
   redis-data:
+
+networks:
+  default:
+    internal: true
+    name: web

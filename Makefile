@@ -5,22 +5,35 @@
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 $(eval $(ARGS):;@:)
 
-# user mapping
+# env
+export APP_ENV = production
+-include .env
+export $(shell sed 's/=.*//' .env)
+
+# mapping
 export UID = $(shell id -u)
 export GID = $(shell id -g)
+export IP = $(shell ifconfig en0 | grep inet | awk '$$1=="inet" {print $$2}')
 
 help: ## Show this help
 	@printf "\033[33m%s:\033[0m\n" 'Available commands'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[32m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-build: ./services/*/docker-compose.yml ## Build platform
+init: ## Init project environment
+ifneq (,${ARGS})
+	@cp .env.${ARGS} .env
+else
+	@cp .env.production .env
+endif
+
+build: ./workspace/*/docker-compose.yml ## Build platform
 	@docker-compose -f docker-compose.yml $(shell for compose in $^ ; do echo " -f $${compose}"; done) pull
 	@docker-compose -f docker-compose.yml $(shell for compose in $^ ; do echo " -f $${compose}"; done) build
 
-up: ./services/*/docker-compose.yml ## Run platform
+up: ./workspace/*/docker-compose.yml ## Run platform
 	@docker-compose -f docker-compose.yml $(shell for compose in $^ ; do echo " -f $${compose}"; done) up -d
 
-down: ./services/*/docker-compose.yml ## Stop platform
+down: ./workspace/*/docker-compose.yml ## Stop platform
 	@docker-compose -f docker-compose.yml $(shell for compose in $^ ; do echo " -f $${compose}"; done) down
 
 restart: ## Restart platform
@@ -28,8 +41,8 @@ restart: ## Restart platform
 	@make up
 
 reload: ## Reload NGINX configuration and worker
-	@UID="$(id -u)" GID="$(id -g)" docker-compose exec web nginx -s reload
-	@UID="$(id -u)" GID="$(id -g)" docker-compose restart php-worker
+	@docker-compose exec web nginx -s reload
+	@docker-compose restart php-worker
 
 sh:  ## Attach to container
 ifneq (,${ARGS})
@@ -45,13 +58,32 @@ endif
 clean: ## Clean logs
 	@rm -rf ./logs/*
 
-backup: ## Dump databases
-	@docker exec -t postgres pg_dumpall -c -U postgres > ./backups/postgres.sql
-	@docker exec -t mysql /usr/bin/mysqldump -u root --password=mysql --all-databases > ./backups/mysql.sql
+node-up: ## Run nodejs container
+	@docker run -i -t --rm \
+		--name node \
+		--volumes-from web \
+		--workdir /var/www \
+		node:12-alpine sh
 
-restore: ## Restore databases from dump
-	@cat ./backups/postgres.sql | docker exec -i postgres psql -U postgres
-	@cat ./backups/mysql.sql | docker exec -i mysql /usr/bin/mysql -u root --password=root
+node-down: ## Stop nodejs container
+	@docker stop node
+	@docker rm node
+
+cypress-up: ## Run cypress container
+	@echo "Host machine IP:" $(IP)
+	@read -r -p "Project name: " DIR \
+	DISPLAY=$(IP):0 \
+	docker run -i -t --rm \
+		--name cypress \
+		--volumes-from web \
+		-v /tmp/.X11-unix:/tmp/.X11-unix \
+		--workdir /var/www/stryker-api/tests \
+		-e DISPLAY \
+		cypress/included:3.2.0
+
+cypress-down: ## Stop cypress container
+	@docker stop cypress
+	@docker rm cypress
 
 ftp-up: ## Run FTP server
 	@read -r -p "Project name: " DIR; \
@@ -60,7 +92,7 @@ ftp-up: ## Run FTP server
 	docker run -d --rm \
 		--name ftp \
 		-p 20:20 -p 21:21 -p 47400-47470:47400-47470 \
-		-v /root/web/services/$$DIR:/home/vsftpd \
+		-v /root/web/workspace/$$DIR:/home/vsftpd \
 		-e FTP_USER=$$USERNAME \
 		-e FTP_PASS=$$PASSWORD \
 		-e PASV_ADDRESS=${shell curl ifconfig.co} \
@@ -68,3 +100,11 @@ ftp-up: ## Run FTP server
 
 ftp-down: ## Stop FTP server
 	@docker stop ftp
+
+backup: ## Dump databases
+	@docker exec -t postgres pg_dumpall -c -U postgres > ./backups/postgres.sql
+	@docker exec -t mysql /usr/bin/mysqldump -u root --password=mysql --all-databases > ./backups/mysql.sql
+
+restore: ## Restore databases from dump
+	@cat ./backups/postgres.sql | docker exec -i postgres psql -U postgres
+	@cat ./backups/mysql.sql | docker exec -i mysql /usr/bin/mysql -u root --password=root

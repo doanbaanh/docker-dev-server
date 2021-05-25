@@ -7,7 +7,7 @@ services:
     container_name: web
     restart: always
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./workspace:/var/www:cached
       - ./logs:/logs:cached
     ports:
@@ -15,7 +15,7 @@ services:
       - 443:443
 
   php:
-    # build: ./php-fpm
+    # build: ./docker/php-fpm
     image: doanbaanh/php-fpm
     container_name: php
     restart: always
@@ -35,7 +35,7 @@ services:
     volumes_from:
       - web
     volumes:
-      - ./php-worker/supervisord.conf:/etc/supervisord.conf:ro
+      - ./docker/php-worker/supervisord.conf:/etc/supervisord.conf:ro
     entrypoint: ["/usr/bin/supervisord", "-n"]
     user: "${UID}:${GID}"
 

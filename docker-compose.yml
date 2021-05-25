@@ -3,7 +3,7 @@ version: '2.4'
 services:
 
   web:
-    image: nginx:${NGINX_VERSION}-alpine
+    image: doanbaanh/nginx:1.20
     container_name: web
     restart: always
     volumes:
@@ -15,8 +15,8 @@ services:
       - 443:443
 
   php:
-    # build: ./docker/php-fpm
-    image: doanbaanh/php-fpm
+    image: doanbaanh/php-fpm:7.4
+    # image: doanbaanh/php-fpm:7.4-xdebug
     container_name: php
     restart: always
     logging:
@@ -27,20 +27,18 @@ services:
     user: "${UID}:${GID}"
 
   php-worker:
-    image: doanbaanh/php-fpm
+    image: doanbaanh/php-fpm:7.4
     container_name: php-worker
     restart: always
     logging:
       driver: none
     volumes_from:
       - web
-    volumes:
-      - ./docker/php-worker/supervisord.conf:/etc/supervisord.conf:ro
     entrypoint: ["/usr/bin/supervisord", "-n"]
     user: "${UID}:${GID}"
 
   postgres:
-    image: postgres:${POSTGRES_VERSION}-alpine
+    image: postgres:13-alpine
     container_name: postgres
     restart: always
     logging:
@@ -51,7 +49,7 @@ services:
       POSTGRES_PASSWORD: secret
 
   mysql:
-    image: mariadb:${MARIADB_VERSION}
+    image: mariadb:10.5
     container_name: mysql
     restart: always
     logging:
@@ -63,7 +61,7 @@ services:
     command: mysqld --sql_mode=''
 
   redis:
-    image: redis:${REDIS_VERSION}-alpine
+    image: redis:5-alpine
     container_name: redis
     restart: always
     logging:
@@ -75,8 +73,3 @@ volumes:
   postgres-data:
   mysql-data:
   redis-data:
-
-networks:
-  default:
-    internal: true
-    name: web

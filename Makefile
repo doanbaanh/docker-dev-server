@@ -19,13 +19,6 @@ help: ## Show this help
 	@printf "\033[33m%s:\033[0m\n" 'Available commands'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[32m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-init: ## Init project environment
-ifneq (,${ARGS})
-	@cp .env.${ARGS} .env
-else
-	@cp .env.production .env
-endif
-
 build: ./workspace/*/docker-compose.yml ## Build platform
 	@docker-compose -f docker-compose.yml $(shell for compose in $^ ; do echo " -f $${compose}"; done) pull
 	@docker-compose -f docker-compose.yml $(shell for compose in $^ ; do echo " -f $${compose}"; done) build
@@ -72,14 +65,14 @@ node-down: ## Stop nodejs container
 cypress-up: ## Run cypress container
 	@echo "Host machine IP:" $(IP)
 	@read -r -p "Project name: " DIR \
-	DISPLAY=$(IP):0 \
 	docker run -i -t --rm \
 		--name cypress \
 		--volumes-from web \
 		-v /tmp/.X11-unix:/tmp/.X11-unix \
-		--workdir /var/www/stryker-api/tests \
-		-e DISPLAY \
-		cypress/included:3.2.0
+		--workdir /var/www/$$PROJECT/tests \
+		-e DISPLAY=$(IP):0 \
+		cypress/browser:node12.18.3-chrome89-ff86 \
+		/bin/bash
 
 cypress-down: ## Stop cypress container
 	@docker stop cypress
@@ -92,7 +85,7 @@ ftp-up: ## Run FTP server
 	docker run -d --rm \
 		--name ftp \
 		-p 20:20 -p 21:21 -p 47400-47470:47400-47470 \
-		-v /root/web/workspace/$$DIR:/home/vsftpd \
+		-v $$PWD/$$DIR:/home/vsftpd \
 		-e FTP_USER=$$USERNAME \
 		-e FTP_PASS=$$PASSWORD \
 		-e PASV_ADDRESS=${shell curl ifconfig.co} \

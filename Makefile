@@ -15,9 +15,6 @@ export UID = $(shell id -u)
 export GID = $(shell id -g)
 export IP = $(shell ifconfig en0 | grep inet | awk '$$1=="inet" {print $$2}')
 
-test: ## test
-	@echo $$PWD
-
 help: ## Show this help
 	@printf "\033[33m%s:\033[0m\n" 'Available commands'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[32m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)

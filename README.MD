@@ -2,7 +2,6 @@
 ```
 git clone https://github.com/doanbaanh/web.git
 cd web
-make init
 make build
 make up
 ```
@@ -17,7 +16,6 @@ make up
 ```
 Available commands:
   help               Show this help
-  init               Init project environment
   build              Build platform
   up                 Run platform
   down               Stop platform

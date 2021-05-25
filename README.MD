@@ -103,6 +103,6 @@ services:
       - web
     working_dir: /var/www/example-front
     links:
-      - web:front.example.localhost
+      - web:api.example.localhost
 
 ```

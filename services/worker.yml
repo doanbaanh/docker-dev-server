@@ -1,0 +1,39 @@
+version: '2.4'
+
+services:
+
+  php8-worker:
+    image: doanbaanh/php-fpm:8
+    container_name: php8-worker
+    restart: always
+    volumes:
+      - workspace-data:/var/www:cached
+    working_dir: /var/www
+    user: "${UID}:${GID}"
+    logging:
+      driver: none
+    entrypoint: ["/usr/bin/supervisord", "-n"]
+
+  php7-worker:
+    image: doanbaanh/php-fpm:7
+    container_name: php7-worker
+    restart: always
+    volumes:
+      - workspace-data:/var/www:cached
+    working_dir: /var/www
+    user: "${UID}:${GID}"
+    logging:
+      driver: none
+    entrypoint: ["/usr/bin/supervisord", "-n"]
+
+  php5-worker:
+    image: doanbaanh/php-fpm:5
+    container_name: php5-worker
+    restart: always
+    volumes:
+      - workspace-data:/var/www:cached
+    working_dir: /var/www
+    user: "${UID}:${GID}"
+    logging:
+      driver: none
+    entrypoint: ["/usr/bin/supervisord", "-n"]

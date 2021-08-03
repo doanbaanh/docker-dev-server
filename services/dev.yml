@@ -1,0 +1,36 @@
+version: '2.4'
+
+services:
+
+  cypress:
+    image: doanbaanh/cypress:latest
+    container_name: cypress
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:cached
+      - ./workspace/${DIR}/tests:/e2e:cached
+      - ./cache/cypress/config:/root/.config:cached
+      - ./cache/cypress/cache:/root/.cache:cached
+    working_dir: /e2e
+    environment:
+      - DISPLAY=${IP}:0
+      - BASE_URL=${BASE_URL}
+    links:
+      - web:${BASE_URL}
+
+  ftp:
+    image: bogem/ftp
+    container_name: ftp
+    volumes:
+      - ./workspace/${DIR}:/home/vsftpd:cached
+    environment:
+      - FTP_USER=${USERNAME}
+      - FTP_PASS=${PASSWORD}
+      - PASV_ADDRESS=${PASV_ADDRESS}
+    ports:
+      - 20:20
+      - 21:21
+      - 47400-47470:47400-47470
+
+volumes:
+  cypress-data:
+  

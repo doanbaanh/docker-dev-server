@@ -1,0 +1,115 @@
+version: '2.4'
+
+services:
+
+  # Web
+  web:
+    extends:
+      file: ./services/web.yml
+      service: web
+
+  # PHP
+  php8:
+    extends:
+      file: ./services/php.yml
+      service: php8
+
+  php7:
+    extends:
+      file: ./services/php.yml
+      service: php7
+
+  php5:
+    extends:
+      file: ./services/php.yml
+      service: php5
+
+  # Workers
+  php8-worker:
+    extends:
+      file: ./services/worker.yml
+      service: php8-worker
+
+  php7-worker:
+    extends:
+      file: ./services/worker.yml
+      service: php7-worker
+
+  php5-worker:
+    extends:
+      file: ./services/worker.yml
+      service: php5-worker
+
+  # Node
+  node:
+    extends:
+      file: ./services/node.yml
+      service: node
+    links:
+      - web:
+    links:
+      - web:localhost
+
+  # Databases
+  postgres:
+    extends:
+      file: ./services/db.yml
+      service: postgres
+
+  mysql:
+    extends:
+      file: ./services/db.yml
+      service: mysql
+
+  mysql5:
+    extends:
+      file: ./services/db.yml
+      service: mysql5
+
+  mongo:
+    extends:
+      file: ./services/db.yml
+      service: mongo
+
+  redis:
+    extends:
+      file: ./services/db.yml
+      service: redis
+
+  # Queue manager
+  rabbitmq:
+    extends:
+      file: ./services/queue.yml
+      service: rabbitmq
+
+  # Search engine
+#  meilisearch:
+#    extends:
+#      file: ./services/search-engine.yml
+#      service: meilisearch
+
+volumes:
+  workspace-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./workspace
+      o: bind
+  logs-data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./logs
+      o: bind
+  postgres-data:
+  mysql-data:
+  mysql5-data:
+  redis-data:
+  rabbitmq-data:
+  mongo-data:
+  mongo-config:
+
+networks:
+  default:
+    external:
+      name: docker-dev-server

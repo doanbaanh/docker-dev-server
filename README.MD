@@ -1,46 +1,46 @@
 # Get started
 ```
-git clone https://github.com/doanbaanh/web.git
-cd web
+git clone https://github.com/doanbaanh/docker-dev-server.git
+docker network create docker-dev-server
+cd doanbaanh/docker-dev-server
+cp docker-compose.yml.example docker-compose.yml
 make build
 make up
 ```
 
 # Projects
 ```
-/workspace/project1/...
-/workspace/project2/...
+/workspace/project1/repository1/...
+/workspace/project2/repository1/...
+/workspace/project2/repository2/...
+/workspace/<project_name>/<repository_name>/...
 ```
 
 # Available 'make' commands
 ```
 Available commands:
   help               Show this help
-  build              Build platform
-  up                 Run platform
-  down               Stop platform
-  restart            Restart platform
+  build              Build development server
+  up                 Run development server
+  down               Stop development server
+  restart            Restart development server
+  restart-workers    Restart PHP workers
   reload             Reload NGINX configuration and worker
   sh                 Attach to container
   clean              Clean logs
-  node-up            Run nodejs container
-  node-down          Stop nodejs container
-  cypress-up         Run cypress container
-  cypress-down       Stop cypress container
-  ftp-up             Run FTP server
-  ftp-down           Stop FTP server
-  backup             Dump databases
+  dump               Dump databases
   restore            Restore databases from dump
 ```
 
 # Projects config
 
-### /workspace/<project_name>/nginx.conf
+## NGINX
+### /workspace/<project_name>/web.conf
 ```
 server {
     listen 80;
     server_name example.localhost;
-    root /var/www/<project_name>/public;
+    root /var/www/<project_name>/<repository_name>/public;
 
     index index.php;
 
@@ -52,7 +52,7 @@ server {
 
     location ~ \.php$ {
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        fastcgi_pass php-fpm;
+        fastcgi_pass php8:9000;
         fastcgi_index index.php;
         fastcgi_read_timeout 1000;
         fastcgi_param SCRIPT_FILENAME $document_root/$fastcgi_script_name;
@@ -66,11 +66,12 @@ server {
 }
 ```
 
-### /workspace/<project_name>/supervisord.conf
+## PHP Worker
+### /workspace/<project_name>/php8-worker.conf (php5-worker.conf/php7-worker.conf)
 ```
 [program:<project_name>-scheduler]
 process_name=%(program_name)s_%(process_num)02d
-command=/bin/sh -c "while [ true ]; do (php /var/www/<project_name>/artisan schedule:run --verbose --no-interaction &); sleep 60; done"
+command=/bin/sh -c "while [ true ]; do (php /var/www/<project_name>/<repository_name>/artisan schedule:run --verbose --no-interaction &); sleep 60; done"
 autorestart=true
 stopasgroup=true
 killasgroup=true
@@ -79,7 +80,7 @@ redirect_stderr=true
 
 [program:<project_name>-queue-default]
 process_name=%(program_name)s_%(process_num)02d
-command=php /var/www/<project_name>/artisan queue:work --sleep=3 --tries=3 --daemon
+command=php /var/www/<project_name>/<repository_name>/artisan queue:work --sleep=3 --tries=3 --daemon
 autostart=true
 autorestart=true
 stopasgroup=true
@@ -87,22 +88,22 @@ killasgroup=true
 numprocs=1
 redirect_stderr=true
 ```
-### /workspace/<project_name>/docker-compose.yml
+
+## PM2
+### Copy PM2 configuration
 ```
-version: '2.4'
-
-services:
-
-  example-front:
-    image: node:12-alpine
-    container_name: example-front
-    restart: always
-    logging:
-      driver: none
-    volumes_from:
-      - web
-    working_dir: /var/www/example-front
-    links:
-      - web:api.example.localhost
-
+cp ./workspace/ecosystem.config.js.example ./workspace/ecosystem.config.js
+```
+### /workspace/ecosystem.config.js
+```
+module.exports = {
+  apps: [
+    {
+      name: "node",
+      port: 3001,
+      cwd: "/var/www/<project_name>/<repository_name>",
+      script: "yarn && yarn dev --hostname node --port 3001",
+    },
+  ],
+}
 ```

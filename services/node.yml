@@ -1,0 +1,14 @@
+version: '2.4'
+
+services:
+
+  node:
+    image: keymetrics/pm2:12-alpine
+    container_name: node
+    restart: always
+    volumes:
+      - workspace-data:/var/www:cached
+    working_dir: /var/www
+    command: ["pm2-runtime", "start", "ecosystem.config.js"]
+    logging:
+      driver: none

@@ -1,0 +1,39 @@
+version: '2.4'
+
+services:
+
+  php8:
+    image: doanbaanh/php-fpm:8
+    # image: doanbaanh/php-fpm:8-xdebug
+    container_name: php8
+    restart: always
+    volumes:
+      - workspace-data:/var/www:cached
+    working_dir: /var/www
+    user: "${UID}:${GID}"
+    logging:
+      driver: none
+
+  php7:
+    image: doanbaanh/php-fpm:7
+    # image: doanbaanh/php-fpm:7-xdebug
+    container_name: php7
+    restart: always
+    volumes:
+      - workspace-data:/var/www:cached
+    working_dir: /var/www
+    user: "${UID}:${GID}"
+    logging:
+      driver: none
+
+  php5:
+    image: doanbaanh/php-fpm:5
+    # image: doanbaanh/php-fpm:5-xdebug
+    container_name: php5
+    restart: always
+    volumes:
+      - workspace-data:/var/www:cached
+    working_dir: /var/www
+    user: "${UID}:${GID}"
+    logging:
+      driver: none

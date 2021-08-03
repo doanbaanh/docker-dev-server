@@ -1,0 +1,10 @@
+version: '2.4'
+
+services:
+
+  meilisearch:
+    image: getmeili/meilisearch
+    container_name: meilisearch
+    restart: always
+    logging:
+      driver: none

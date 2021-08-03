@@ -1,0 +1,77 @@
+version: '2.4'
+
+services:
+
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    restart: always
+    volumes:
+      - mysql-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+    logging:
+      driver: none
+    command: --sql_mode=""
+
+  mysql5:
+    image: mysql:5
+    container_name: mysql5
+    restart: always
+    volumes:
+      - mysql5-data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: secret
+    logging:
+      driver: none
+    command: --sql_mode=""
+
+  postgres:
+    image: postgres:13-alpine
+    container_name: postgres
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: secret
+    logging:
+      driver: none
+
+  redis:
+    image: redis:6-alpine
+    container_name: redis
+    restart: always
+    volumes:
+      - redis-data:/data
+    logging:
+      driver: none
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: secret
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    logging:
+      driver: none
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    ports:
+      - 8888:8081
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: null
+      ME_CONFIG_MONGODB_AUTH_USERNAME: mongo
+      ME_CONFIG_MONGODB_AUTH_PASSWORD: secret
+      ME_CONFIG_BASICAUTH_USERNAME: mongo
+      ME_CONFIG_BASICAUTH_PASSWORD: secret
+    depends_on:
+      - mongo

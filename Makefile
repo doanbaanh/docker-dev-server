@@ -6,9 +6,9 @@ ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 $(eval $(ARGS):;@:)
 
 # env
-export APP_ENV = production
--include .env
-export $(shell sed 's/=.*//' .env)
+# export APP_ENV = production
+# -include .env
+# export $(shell sed 's/=.*//' .env)
 
 # mapping
 export UID = $(shell id -u)
@@ -19,23 +19,27 @@ help: ## Show this help
 	@printf "\033[33m%s:\033[0m\n" 'Available commands'
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[32m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-build: ./workspace/*/docker-compose.yml ## Build platform
-	@docker-compose -f docker-compose.yml $(shell for compose in $^ ; do echo " -f $${compose}"; done) pull
-	@docker-compose -f docker-compose.yml $(shell for compose in $^ ; do echo " -f $${compose}"; done) build
+build: ## Build development server
+	@docker-compose -f docker-compose.yml pull
+	@docker-compose -f docker-compose.yml build
 
-up: ./workspace/*/docker-compose.yml ## Run platform
-	@docker-compose -f docker-compose.yml $(shell for compose in $^ ; do echo " -f $${compose}"; done) up -d
+up: ## Run development server
+	@docker-compose -f docker-compose.yml up -d
 
-down: ./workspace/*/docker-compose.yml ## Stop platform
-	@docker-compose -f docker-compose.yml $(shell for compose in $^ ; do echo " -f $${compose}"; done) down
+down: ## Stop development server
+	@docker-compose -f docker-compose.yml down
 
-restart: ## Restart platform
+restart: ## Restart development server
 	@make down
 	@make up
 
-reload: ## Reload NGINX configuration and worker
+reload: ## Reload NGINX configuration
 	@docker-compose exec web nginx -s reload
-	@docker-compose restart php-worker
+
+restart-workers: ## Restart PHP workers
+	@docker-compose restart php5-worker
+	@docker-compose restart php7-worker
+	@docker-compose restart php8-worker
 
 sh:  ## Attach to container
 ifneq (,${ARGS})
@@ -51,53 +55,37 @@ endif
 clean: ## Clean logs
 	@rm -rf ./logs/*
 
-node-up: ## Run nodejs container
-	@docker run -i -t --rm \
-		--name node \
-		--volumes-from web \
-		--workdir /var/www \
-		node:12-alpine sh
-
-node-down: ## Stop nodejs container
-	@docker stop node
-	@docker rm node
-
-cypress-up: ## Run cypress container
-	@echo "Host machine IP:" $(IP)
-	@read -r -p "Project name: " DIR \
-	docker run -i -t --rm \
-		--name cypress \
-		--volumes-from web \
-		-v /tmp/.X11-unix:/tmp/.X11-unix \
-		--workdir /var/www/$$PROJECT/tests \
-		-e DISPLAY=$(IP):0 \
-		cypress/browser:node12.18.3-chrome89-ff86 \
-		/bin/bash
-
-cypress-down: ## Stop cypress container
-	@docker stop cypress
-	@docker rm cypress
-
-ftp-up: ## Run FTP server
-	@read -r -p "Project name: " DIR; \
-	read -r -p "Username: " USERNAME; \
-	read -r -p "Password: " PASSWORD; \
-	docker run -d --rm \
-		--name ftp \
-		-p 20:20 -p 21:21 -p 47400-47470:47400-47470 \
-		-v $$PWD/$$DIR:/home/vsftpd \
-		-e FTP_USER=$$USERNAME \
-		-e FTP_PASS=$$PASSWORD \
-		-e PASV_ADDRESS=${shell curl ifconfig.co} \
-		bogem/ftp;
-
-ftp-down: ## Stop FTP server
-	@docker stop ftp
-
-backup: ## Dump databases
+dump: ## Dump databases
 	@docker exec -t postgres pg_dumpall -c -U postgres > ./backups/postgres.sql
 	@docker exec -t mysql /usr/bin/mysqldump -u root --password=mysql --all-databases > ./backups/mysql.sql
 
 restore: ## Restore databases from dump
 	@cat ./backups/postgres.sql | docker exec -i postgres psql -U postgres
 	@cat ./backups/mysql.sql | docker exec -i mysql /usr/bin/mysql -u root --password=root
+
+cypress-up: ## Run cypress container
+	@echo "Starting XQuartz service ..."
+	@open -a XQuartz
+	@echo "Host machine IP:" $(IP)
+	@xhost + $$IP
+	@read -r -p "Project name: " DIR; \
+	read -r -p "Base url: http://" BASE_URL; \
+	export DIR=$$DIR; \
+	export BASE_URL=$$BASE_URL; \
+	docker-compose -f docker-compose.yml -f ./docker/docker-compose.yml up cypress
+
+cypress-down: ## Stop cypress container
+	@docker rm -f cypress
+
+ftp-up: ## Run FTP server
+	@read -r -p "Project name: " DIR; \
+	read -r -p "Username: " USERNAME; \
+	read -r -p "Password: " PASSWORD; \
+	export DIR=$$DIR; \
+	export USERNAME=$$USERNAME; \
+	export PASSWORD=$$PASSWORD; \
+	export EXTERNAL_IP=${shell curl ifconfig.co} \
+	docker-compose -f docker-compose.yml -f ./docker/docker-compose.yml up ftp
+
+ftp-down: ## Stop FTP server
+	@docker rm -f ftp

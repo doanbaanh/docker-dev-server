@@ -116,12 +116,6 @@ volumes:
       type: none
       device: ./workspace
       o: bind
-  logs-data:
-    driver: local
-    driver_opts:
-      type: none
-      device: ./logs
-      o: bind
   postgres-data:
   mysql-data:
   mysql5-data:

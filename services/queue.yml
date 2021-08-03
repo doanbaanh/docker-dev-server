@@ -3,10 +3,12 @@ version: '2.4'
 services:
 
   rabbitmq:
-    image: rabbitmq:3-alpine
+    image: rabbitmq:3-management-alpine
     container_name: rabbitmq
     restart: always
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+    ports:
+      - 9004:15672
     logging:
       driver: none

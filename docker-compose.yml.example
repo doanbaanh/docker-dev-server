@@ -46,8 +46,6 @@ services:
       file: ./services/node.yml
       service: node
     links:
-      - web:
-    links:
       - web:localhost
 
   # Databases
@@ -83,10 +81,33 @@ services:
       service: rabbitmq
 
   # Search engine
-#  meilisearch:
-#    extends:
-#      file: ./services/search-engine.yml
-#      service: meilisearch
+  meilisearch:
+    extends:
+      file: ./services/search-engine.yml
+      service: meilisearch
+
+  # Dev tools
+  portainer:
+    extends:
+      file: ./services/dev.yml
+      service: portainer
+
+  adminer:
+    extends:
+      file: ./services/dev.yml
+      service: adminer
+
+  redis-commander:
+    extends:
+      file: ./services/dev.yml
+      service: redis-commander
+
+  mongo-express:
+    extends:
+      file: ./services/dev.yml
+      service: mongo-express
+
+
 
 volumes:
   workspace-data:
@@ -108,6 +129,9 @@ volumes:
   rabbitmq-data:
   mongo-data:
   mongo-config:
+  portainer-data:
+
+
 
 networks:
   default:

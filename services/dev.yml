@@ -37,11 +37,8 @@ services:
     environment:
       ME_CONFIG_MONGODB_SERVER: mongo
       ME_CONFIG_MONGODB_PORT: 27017
-      ME_CONFIG_MONGODB_ENABLE_ADMIN: null
       ME_CONFIG_MONGODB_AUTH_USERNAME: mongo
       ME_CONFIG_MONGODB_AUTH_PASSWORD: secret
-      ME_CONFIG_BASICAUTH_USERNAME: mongo
-      ME_CONFIG_BASICAUTH_PASSWORD: secret
 
   cypress:
     image: doanbaanh/cypress:latest

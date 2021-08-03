@@ -27,8 +27,6 @@ services:
       - REDIS_HOSTS=local:redis:6379
     ports:
       - 9002:8081
-    depends_on:
-      - redis
 
   mongo-express:
     image: mongo-express
@@ -44,8 +42,6 @@ services:
       ME_CONFIG_MONGODB_AUTH_PASSWORD: secret
       ME_CONFIG_BASICAUTH_USERNAME: mongo
       ME_CONFIG_BASICAUTH_PASSWORD: secret
-    depends_on:
-      - mongo
 
   cypress:
     image: doanbaanh/cypress:latest

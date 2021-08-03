@@ -1,2 +1,5 @@
 *
+!manager
+!manager/**
+!ecosystem.config.js.example
 !.gitignore
